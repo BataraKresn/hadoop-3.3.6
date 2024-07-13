@@ -1,0 +1,47 @@
+services:
+  impala-state-store:
+    build: .
+    container_name: impala-state-store
+    command: ["/opt/impala/bin/statestored", "-log_dir=/var/log/impala"]
+    ports:
+      - "24000:24000"
+    volumes:
+      - /home/bdata/bigdata-file/impala/impala-logs:/var/log/impala
+    depends_on:
+      - namenode
+    networks:
+      - hadoop-network
+
+  impala-catalog:
+    build: .
+    container_name: impala-catalog
+    command: ["/opt/impala/bin/catalogd", "-log_dir=/var/log/impala", "-state_store_host=impala-state-store"]
+    ports:
+      - "25020:25020"
+    volumes:
+      - /home/bdata/bigdata-file/impala/impala-logs:/var/log/impala
+    depends_on:
+      - impala-state-store
+    networks:
+      - hadoop-network
+
+  impala-daemon:
+    build: .
+    container_name: impala-daemon
+    command: ["/opt/impala/bin/impalad", "-log_dir=/var/log/impala", "-catalog_service_host=impala-catalog", "-state_store_host=impala-state-store"]
+    ports:
+      - "21050:21050"
+      - "22000:22000"
+    volumes:
+      - /home/bdata/bigdata-file/impala/impala-logs:/var/log/impala
+    depends_on:
+      - impala-catalog
+      - namenode
+      - datanode1
+      - datanode2
+      - datanode3
+
+networks:
+  hadoop-network:
+    name: hadoop-network
+    external: true

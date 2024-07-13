@@ -1,5 +1,7 @@
 # builder step used to download and configure spark environment
-FROM hadoop-base:3.3.6 AS builder
+# FROM hadoop-base:3.3.6 AS builder
+
+FROM hadoop-spark-java-python:3.3.6 AS builder
 
 WORKDIR $SPARK_HOME
 

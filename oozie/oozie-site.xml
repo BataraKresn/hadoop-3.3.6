@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<configuration>
+
+  <!-- Oozie service URL -->
+  <property>
+    <name>oozie.base.url</name>
+    <value>http://oozie-server:11000/oozie</value>
+  </property>
+
+  <!-- Oozie database configuration -->
+  <property>
+    <name>oozie.service.JPAService.jdbc.driver</name>
+    <value>org.postgresql.Driver</value>
+  </property>
+  <property>
+    <name>oozie.service.JPAService.jdbc.url</name>
+    <value>jdbc:postgresql://postgresdb:5432/oozie</value>
+  </property>
+  <property>
+    <name>oozie.service.JPAService.jdbc.username</name>
+    <value>oozie</value>
+  </property>
+  <property>
+    <name>oozie.service.JPAService.jdbc.password</name>
+    <value>oozie123</value>
+  </property>
+
+  <!-- Oozie queue configurations -->
+  <property>
+    <name>oozie.service.CallableQueueService.enabled</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>oozie.service.CallableQueueService.queue.size</name>
+    <value>1000</value>
+  </property>
+
+  <!-- Oozie authentication -->
+  <property>
+    <name>oozie.authentication.type</name>
+    <value>simple</value>
+  </property>
+
+  <!-- Oozie shared library configuration -->
+  <property>
+    <name>oozie.service.WorkflowAppService.system.libpath</name>
+    <value>/user/oozie/share/lib</value>
+  </property>
+
+  <!-- Oozie admin users -->
+  <property>
+    <name>oozie.admin.users</name>
+    <value>admin,user1,user2</value>
+  </property>
+
+  <!-- Oozie workflow and coordinator configurations -->
+  <property>
+    <name>oozie.service.WorkflowAppService.max.running.apps</name>
+    <value>100</value>
+  </property>
+  <property>
+    <name>oozie.service.CoordinatorService.max.running.coordinators</name>
+    <value>50</value>
+  </property>
+
+  <!-- Oozie execution engine configuration -->
+  <property>
+    <name>oozie.service.ActionService.executor.ext.classes</name>
+    <value>org.apache.oozie.action.email.EmailActionExecutor,org.apache.oozie.action.hadoop.HiveActionExecutor</value>
+  </property>
+
+</configuration>

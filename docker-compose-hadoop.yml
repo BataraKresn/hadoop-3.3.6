@@ -3,8 +3,11 @@ services:
     build: ./namenode
     image: hadoop-namenode:1.0.0
     container_name: namenode
+    restart: always
+    hostname: namenode
+    # command: bash -c "start-dfs.sh && sleep 10 && hdfs dfs -mkdir -p /user/hive/warehouse && hdfs dfs -chmod -R 777 /user/hive/warehouse && start-namenode.sh"
     volumes:
-      - /bigdata/hadoop_namenode:/hadoop/dfs/name
+      - /home/bdata/bigdata-file/hadoop_namenode:/hadoop/dfs/name
       - ./data/:/hadoop-data/input
       - ./map_reduce/:/hadoop-data/map_reduce
       - ./requirements.txt:/hadoop-data/requirements.txt
@@ -22,6 +25,7 @@ services:
     build: ./resourcemanager
     image: hadoop-resourcemanager:1.0.0
     container_name: resourcemanager
+    hostname: resourcemanager
     restart: on-failure
     depends_on:
       - namenode
@@ -39,12 +43,15 @@ services:
     build: ./historyserver
     image: hadoop-historyserver:1.0.0
     container_name: historyserver
+    hostname: historyserver
+    restart: always
     depends_on:
       - namenode
       - datanode1
       - datanode2
+      - datanode3
     volumes:
-      - /bigdata/hadoop_historyserver:/hadoop/yarn/timeline
+      - /home/bdata/bigdata-file/hadoop_historyserver:/hadoop/yarn/timeline
     env_file:
       - ./hadoop.env
     ports:
@@ -56,6 +63,8 @@ services:
     build: ./nodemanager
     image: hadoop-nodemanager:1.0.0
     container_name: nodemanager1
+    hostname: nodemanager
+    restart: always
     depends_on:
       - namenode
       - datanode1
@@ -64,8 +73,8 @@ services:
     env_file:
       - ./hadoop.env
     volumes:
-      - /bigdata/hadoop_namenager_local:/hadoop/dfs/local
-      - /bigdata/hadoop_namenager_logs:/hadoop/dfs/logs
+      - /home/bdata/bigdata-file/hadoop_namenager_local:/hadoop/dfs/local
+      - /home/bdata/bigdata-file/hadoop_namenager_logs:/hadoop/dfs/logs
     ports:
       - 8042:8042
     networks:
@@ -75,10 +84,13 @@ services:
     build: ./datanode
     image: hadoop-datanode1:1.0.0
     container_name: datanode1
+    hostname: datanode-1
+    restart: always
+    # command: bash -c "start-dfs.sh && sleep 10 && start-datanode.sh"
     depends_on:
       - namenode
     volumes:
-      - /bigdata/hadoop_datanode1:/hadoop/dfs/data
+      - /home/bdata/bigdata-file/hadoop_datanode1:/hadoop/dfs/data
     env_file:
       - ./hadoop.env
     networks:
@@ -88,10 +100,12 @@ services:
     build: ./datanode
     image: hadoop-datanode2:1.0.0
     container_name: datanode2
+    hostname: datanode-2
+    restart: always
     depends_on:
       - namenode
     volumes:
-      - /bigdata/hadoop_datanode2:/hadoop/dfs/data
+      - /home/bdata/bigdata-file/hadoop_datanode2:/hadoop/dfs/data
     env_file:
       - ./hadoop.env
     networks:
@@ -100,16 +114,248 @@ services:
     build: ./datanode
     image: hadoop-datanode3:1.0.0
     container_name: datanode3
+    hostname: datanode3
     depends_on:
       - namenode
     volumes:
-      - /bigdata/hadoop_datanode3:/hadoop/dfs/data
+      - /home/bdata/bigdata-file/hadoop_datanode3:/hadoop/dfs/data
     env_file:
       - ./hadoop.env
+    networks:
+      - hadoop_network
+  
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    env_file:
+      - ./hadoop.env
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-postgresql/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    volumes:
+      - ./hive/hive-site.xml:/opt/hive/conf/hive-site.xml
+    restart: always
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    networks:
+      - hadoop_network
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    env_file:
+      - ./hadoop.env
+    command: /opt/hive/bin/hive --service metastore
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864  hive-metastore-postgresql:5432"
+    volumes:
+      - ./hive/hive-site.xml:/opt/hive/conf/hive-site.xml
+    ports:
+      - "9083:9083"
+    networks:
+      - hadoop_network
+
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-postgresql
+    restart: always
+    networks:
+      - hadoop_network
+
+  postgresdb:
+    # image: postgres:10.3
+    build: ./hive/postgres
+    image: postgresdb:11.4-alpine
+    container_name: postgresdb
+    restart: always
+    hostname: postgresdb
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgresdb
+      - TZ=Asia/Jakarta
+    ports:
+      - 5435:5432
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    volumes:
+      # - /var/run/docker.sock:/var/run/docker.sock
+      - /home/bdata/bigdata-file/postgresdb/data:/var/lib/postgresql/data
+      - /home/bdata/bigdata-file/postgresdb/logs:/var/lib/postgresql/log
+      - ./hive/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./hive/postgres/01-postgres-init.sql:/docker-entrypoint-initdb.d/01-postgres-init.sql
+    networks:
+      - hadoop_network
+
+  # hive-metastore:
+  #   build: ./hive/hive-metastore
+  #   image: hive-metastore:1.0.0
+  #   restart: always
+  #   container_name: hive-metastore
+  #   hostname: hive-metastore
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #         max-file: "5"
+  #         max-size: "10m"
+  #   environment:
+  #     - SERVICE_PRECONDITION=namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864 postgresdb:5432
+  #   ports:
+  #     - 9083:9083
+  #   healthcheck:
+  #     test: [ "CMD", "nc", "-z", "hive-metastore", "9083" ]
+  #     timeout: 45s
+  #     interval: 10s
+  #     retries: 10
+  #   networks:
+  #     - hadoop_network
+
+  # hive-server:
+  #   build: ./hive/hive-server
+  #   image: hive-server:1.0.0
+  #   restart: always
+  #   container_name: hive-server
+  #   hostname: hive-server
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #         max-file: "5"
+  #         max-size: "10m"
+  #   environment:
+  #     - SERVICE_PRECONDITION=hive-metastore:9083
+  #   ports:
+  #     - "10000:10000"
+  #   healthcheck:
+  #     test: [ "CMD", "nc", "-z", "hive-server", "10002" ]
+  #     timeout: 45s
+  #     interval: 10s
+  #     retries: 10
+  #   networks:
+  #     - hadoop_network
+
+  # hive-webhcat:
+  #   build: ./hive/hive-webchat
+  #   image: hive-webhcat:1.0.0
+  #   restart: always
+  #   container_name: hive-webhcat
+  #   hostname: hive-webchat
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #         max-file: "5"
+  #         max-size: "10m"
+  #   depends_on:
+  #     - hive-server
+  #   environment:
+  #     - SERVICE_PRECONDITION=hive-server:10000
+  #   ports:
+  #     - 50111:50111
+  #   healthcheck:
+  #     test: [ "CMD", "nc", "-z", "hive-webhcat", "50111" ]
+  #     timeout: 45s
+  #     interval: 10s
+  #     retries: 10
+  #   networks:
+  #     - hadoop_network
+
+  # Oozie-setup
+  oozie-server:
+    image: oozie/oozie:1.0.0
+    container_name: oozie-server
+    hostname: oozie-server
+    restart: always
+    depends_on:
+      - namenode
+      - resourcemanager
+      - datanode1
+      - datanode2
+      - datanode3
+      - postgresdb
+    environment:
+      - OOZIE_DB_HOST=postgresdb
+      - OOZIE_DB_PORT=5432
+      - OOZIE_DB_USER=oozie
+      - OOZIE_DB_PASSWORD=oozie
+      - OOZIE_DB_NAME=oozie
+    volumes:
+      - /home/bdata/bigdata-file/oozie/data:/opt/oozie/data
+    ports:
+      - "11000:11000"
+    networks:
+      - hadoop_network
+
+  huedb:
+    image: postgres:12.1-alpine
+    volumes:
+      - /home/bdata/bigdata-file/huedb/data:/var/lib/postgresql/data
+    environment:
+      HUE_DATABASE_ENGINE: postgresql
+      HUE_DATABASE_HOST: huedb
+      HUE_DATABASE_PORT: 5432
+      HUE_DATABASE_USERNAME: hue
+      HUE_DATABASE_PASSWORD: hue123
+      HUE_DATABASE_NAME: hue
+      TZ: Asia/Jakarta
+      SERVICE_PRECONDITION: "namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864 postgresdb:5432 resourcemanager:8088 hive-metastore:9083"
+    container_name: huedb
+    hostname: huedb
+    restart: always
+    healthcheck:
+        test: ["CMD", "pg_isready", "-U", "hue"]
+        interval: 10s
+        retries: 5
+        start_period: 5s
+    ports:
+      - 5436:5432
+    networks:
+      - hadoop_network
+
+  hue:
+    build: ./hive/hue
+    image: hue:1.0.0
+    restart: always
+    container_name: hue
+    hostname: hue
+    logging:
+      driver: "json-file"
+      options:
+          max-file: "5"
+          max-size: "10m"
+    links:
+      - huedb
+    ports:
+      - 8888:8888
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - ./hive/hue/hue.ini:/usr/share/hue/desktop/conf/hue.ini
+      - ./hive/hue/log.conf:/usr/share/hue/desktop/conf/log.conf
+    environment:
+       SERVICE_PRECONDITION: "namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864 postgresdb:5432 resourcemanager:8088 hive-metastore:9083"
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "hue", "8888" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    networks:
+      - hadoop_network
+  
+  presto-coordinator:
+    image: shawnzhu/prestodb:0.181
+    container_name: presto-coordinator
+    hostname: presto-coordinator
+    restart: always
+    ports:
+      - 8090:8089
+      - 8081:8080
     networks:
       - hadoop_network
 
 networks:
   hadoop_network:
-    name: hadoop_network
     external: true

@@ -14,7 +14,7 @@ function addProperty() {
   sed -i "/<\/configuration>/ s/.*/${escapedEntry}\n&/" $path
 }
 
-# This will transform hadoop.env format into iterable data format that can added to addProperty
+# This will transform hadoop.env format into iterable data format that can be added to addProperty
 function configure() {
     local path=$1
     local module=$2
@@ -33,7 +33,7 @@ function configure() {
     done
 }
 
-# call configure function with respective parameters
+# Call configure function with respective parameters
 configure /etc/hadoop/core-site.xml core CORE_CONF
 configure /etc/hadoop/hdfs-site.xml hdfs HDFS_CONF
 configure /etc/hadoop/yarn-site.xml yarn YARN_CONF
@@ -41,7 +41,7 @@ configure /etc/hadoop/httpfs-site.xml httpfs HTTPFS_CONF
 configure /etc/hadoop/kms-site.xml kms KMS_CONF
 configure /etc/hadoop/mapred-site.xml mapred MAPRED_CONF
 
-# If we use multihome network, some additional config will added into xml config files
+# If we use multihome network, some additional config will be added into xml config files
 if [ "$MULTIHOMED_NETWORK" = "1" ]; then
     echo "Configuring for multihomed network"
 
@@ -113,10 +113,15 @@ function wait_for_it()
     echo "[$i/$max_try] $service:${port} is available."
 }
 
-# iterate service precondition in docker compose
+# Iterate service precondition in docker compose
 for i in ${SERVICE_PRECONDITION[@]}
 do
     wait_for_it ${i}
 done
 
-exec $@
+# # Start Hadoop services
+# $HADOOP_HOME/sbin/start-dfs.sh
+# $HADOOP_HOME/sbin/start-yarn.sh
+
+# Execute the passed command
+exec "$@"
