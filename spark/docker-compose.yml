@@ -1,12 +1,13 @@
 services:
   spark-master:
     image: spark-base:3.5.1
+    container_name: spark-master
     ports:
-      - 9090:8081
+      - 9089:8081
       - 7077:7077
     volumes:
-      - /bigdata/spark/apps:/opt/spark-apps
-      - /bigdata/spark/data:/opt/spark-data
+      - /home/bdata/bigdata-file/spark/apps:/opt/spark-apps
+      - /home/bdata/bigdata-file/spark/data:/opt/spark-data
     environment:
       - SPARK_LOCAL_IP=spark-master
       - SPARK_WORKLOAD=master
@@ -16,6 +17,7 @@ services:
 
   spark-worker-a:
     image: spark-base:3.5.1
+    container_name: spark-worker-a
     ports:
       - 9091:8081
       - 7000:7000
@@ -30,14 +32,15 @@ services:
       - SPARK_WORKLOAD=worker
       - SPARK_LOCAL_IP=spark-worker-a
     volumes:
-      - /bigdata/spark/apps:/opt/spark-apps
-      - /bigdata/spark/data:/opt/spark-data
+      - /home/bdata/bigdata-file/spark/apps:/opt/spark-apps
+      - /home/bdata/bigdata-file/spark/data:/opt/spark-data
     networks:
       - hadoop_network
     command: /bin/sh -c "./start-spark.sh"
 
   spark-worker-b:
     image: spark-base:3.5.1
+    container_name: spark-worker-b
     ports:
       - 9092:8081
       - 7001:7000
@@ -52,8 +55,8 @@ services:
       - SPARK_WORKLOAD=worker
       - SPARK_LOCAL_IP=spark-worker-b
     volumes:
-      - /bigdata/spark/apps:/opt/spark-apps
-      - /bigdata/spark/data:/opt/spark-data
+      - /home/bdata/bigdata-file/spark/apps:/opt/spark-apps
+      - /home/bdata/bigdata-file/spark/data:/opt/spark-data
     networks:
       - hadoop_network
     command: /bin/sh -c "./start-spark.sh"

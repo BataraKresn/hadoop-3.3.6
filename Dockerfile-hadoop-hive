@@ -2,7 +2,6 @@
 FROM ubuntu:18.04 AS base
 
 # Set environment variables
-ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 ENV HADOOP_VERSION=3.3.6
 ENV HADOOP_CONF_DIR=/etc/hadoop
 ENV MULTIHOMED_NETWORK=1
@@ -11,11 +10,13 @@ ENV SPARK_VERSION=spark-3.5.1
 ENV SPARK_HOME=/opt/$SPARK_VERSION
 ENV PYSPARK_PYTHON=python3.8
 ENV PYTHONHASHSEED=1
-ENV PATH=$JAVA_HOME/bin:$HADOOP_HOME/bin/:$HADOOP_HOME/sbin:$SPARK_HOME/bin:$PATH
+ENV HIVE_VERSION=3.1.3
+ENV HIVE_HOME=/opt/apache-hive-$HIVE_VERSION-bin
+ENV PATH=$HADOOP_HOME/bin/:$HADOOP_HOME/sbin:$SPARK_HOME/bin:$HIVE_HOME/bin:$PATH
 
 # Update package list and install required dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    openjdk-8-jdk \
+    openjdk-11-jdk \
     openssh-client \
     nano \
     software-properties-common \
@@ -97,6 +98,7 @@ RUN python3.8 -m pip install pikepdf Cython numpy wheel setuptools --force-reins
 # Copy Hadoop and Spark tar files and extract them
 COPY hadoop-3.3.6.tar.gz /tmp/
 COPY spark-3.5.1-bin-hadoop3.tgz /tmp/
+COPY apache-hive-3.1.3-bin.tar.gz /tmp/
 
 RUN set -x \
     && tar -xvf /tmp/hadoop-3.3.6.tar.gz -C /opt/ \
@@ -108,11 +110,17 @@ RUN set -x \
     && rm /tmp/spark-3.5.1-bin-hadoop3.tgz \
     && mv /opt/${SPARK_VERSION}-bin-hadoop3 /opt/${SPARK_VERSION}
 
+# Download and install Hive
+RUN wget https://downloads.apache.org/hive/hive-${HIVE_VERSION}/apache-hive-${HIVE_VERSION}-bin.tar.gz -P /tmp/ \
+    && tar -xvzf /tmp/apache-hive-${HIVE_VERSION}-bin.tar.gz -C /opt/ \
+    && rm /tmp/apache-hive-${HIVE_VERSION}-bin.tar.gz
+
 # Copy configuration files
 COPY conf/core-site.xml $HADOOP_CONF_DIR/core-site.xml
 COPY conf/hdfs-site.xml $HADOOP_CONF_DIR/hdfs-site.xml
 COPY conf/mapred-site.xml $HADOOP_CONF_DIR/mapred-site.xml
 COPY conf/yarn-site.xml $HADOOP_CONF_DIR/yarn-site.xml
+COPY hive/hive-base/conf/hive-site.xml $HIVE_HOME/conf/hive-site.xml
 COPY conf/core-site.xml $SPARK_HOME/conf
 COPY conf/yarn-site.xml $SPARK_HOME/conf
 

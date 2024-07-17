@@ -124,46 +124,6 @@ services:
     networks:
       - hadoop_network
   
-  hive-server:
-    image: bde2020/hive:2.3.2-postgresql-metastore
-    container_name: hive-server
-    env_file:
-      - ./hadoop.env
-    environment:
-      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-postgresql/metastore"
-      SERVICE_PRECONDITION: "hive-metastore:9083"
-    volumes:
-      - ./hive/hive-site.xml:/opt/hive/conf/hive-site.xml
-    restart: always
-    ports:
-      - "10000:10000"
-      - "10002:10002"
-    networks:
-      - hadoop_network
-
-  hive-metastore:
-    image: bde2020/hive:2.3.2-postgresql-metastore
-    container_name: hive-metastore
-    env_file:
-      - ./hadoop.env
-    command: /opt/hive/bin/hive --service metastore
-    restart: always
-    environment:
-      SERVICE_PRECONDITION: "namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864  hive-metastore-postgresql:5432"
-    volumes:
-      - ./hive/hive-site.xml:/opt/hive/conf/hive-site.xml
-    ports:
-      - "9083:9083"
-    networks:
-      - hadoop_network
-
-  hive-metastore-postgresql:
-    image: bde2020/hive-metastore-postgresql:2.3.0
-    container_name: hive-metastore-postgresql
-    restart: always
-    networks:
-      - hadoop_network
-
   postgresdb:
     # image: postgres:10.3
     build: ./hive/postgres
@@ -191,77 +151,6 @@ services:
       - ./hive/postgres/01-postgres-init.sql:/docker-entrypoint-initdb.d/01-postgres-init.sql
     networks:
       - hadoop_network
-
-  # hive-metastore:
-  #   build: ./hive/hive-metastore
-  #   image: hive-metastore:1.0.0
-  #   restart: always
-  #   container_name: hive-metastore
-  #   hostname: hive-metastore
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #         max-file: "5"
-  #         max-size: "10m"
-  #   environment:
-  #     - SERVICE_PRECONDITION=namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864 postgresdb:5432
-  #   ports:
-  #     - 9083:9083
-  #   healthcheck:
-  #     test: [ "CMD", "nc", "-z", "hive-metastore", "9083" ]
-  #     timeout: 45s
-  #     interval: 10s
-  #     retries: 10
-  #   networks:
-  #     - hadoop_network
-
-  # hive-server:
-  #   build: ./hive/hive-server
-  #   image: hive-server:1.0.0
-  #   restart: always
-  #   container_name: hive-server
-  #   hostname: hive-server
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #         max-file: "5"
-  #         max-size: "10m"
-  #   environment:
-  #     - SERVICE_PRECONDITION=hive-metastore:9083
-  #   ports:
-  #     - "10000:10000"
-  #   healthcheck:
-  #     test: [ "CMD", "nc", "-z", "hive-server", "10002" ]
-  #     timeout: 45s
-  #     interval: 10s
-  #     retries: 10
-  #   networks:
-  #     - hadoop_network
-
-  # hive-webhcat:
-  #   build: ./hive/hive-webchat
-  #   image: hive-webhcat:1.0.0
-  #   restart: always
-  #   container_name: hive-webhcat
-  #   hostname: hive-webchat
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #         max-file: "5"
-  #         max-size: "10m"
-  #   depends_on:
-  #     - hive-server
-  #   environment:
-  #     - SERVICE_PRECONDITION=hive-server:10000
-  #   ports:
-  #     - 50111:50111
-  #   healthcheck:
-  #     test: [ "CMD", "nc", "-z", "hive-webhcat", "50111" ]
-  #     timeout: 45s
-  #     interval: 10s
-  #     retries: 10
-  #   networks:
-  #     - hadoop_network
 
   # Oozie-setup
   oozie-server:
@@ -346,6 +235,46 @@ services:
     networks:
       - hadoop_network
   
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    env_file:
+      - ./hadoop.env
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-postgresql/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    volumes:
+      - ./hive/hive-site.xml:/opt/hive/conf/hive-site.xml
+    restart: always
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    networks:
+      - hadoop_network
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    env_file:
+      - ./hadoop.env
+    command: /opt/hive/bin/hive --service metastore
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864  hive-metastore-postgresql:5432"
+    volumes:
+      - ./hive/hive-site.xml:/opt/hive/conf/hive-site.xml
+    ports:
+      - "9083:9083"
+    networks:
+      - hadoop_network
+
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-postgresql
+    restart: always
+    networks:
+      - hadoop_network
+
   presto-coordinator:
     image: shawnzhu/prestodb:0.181
     container_name: presto-coordinator
