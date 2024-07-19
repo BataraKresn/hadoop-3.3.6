@@ -6,9 +6,12 @@ ENV POSTGRES_PASSWORD=postgres
 ENV POSTGRES_DB=postgres
 
 COPY pg_hba.conf /etc/postgresql/pg_hba.conf
-COPY init-hive-db.sh /docker-entrypoint-initdb.d/init-hive-db.sh
-COPY 01-postgres-init.sql /docker-entrypoint-initdb.d/
-# COPY 02-hive-schema-3.1.3.postgres.sql  /docker-entrypoint-initdb.d/
+
+COPY hive-schema-2.3.0.postgres.sql /hive/hive-schema-2.3.0.postgres.sql
+COPY hive-txn-schema-2.3.0.postgres.sql /hive/hive-txn-schema-2.3.0.postgres.sql
+COPY upgrade-3.0.0-to-3.1.0.postgres.sql /hive/upgrade-3.0.0-to-3.1.0.postgres.sql
+
+COPY init-hive-db.sh /docker-entrypoint-initdb.d/init-user-db.sh
 
 RUN chmod +x /docker-entrypoint-initdb.d/init-hive-db.sh
 
